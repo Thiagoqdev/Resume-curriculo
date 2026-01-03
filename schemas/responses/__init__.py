@@ -8,8 +8,7 @@ from .responses import (
     ResumeResponse,
     AnalysisResponse,
     ErrorResponse,
-    HealthCheckResponse
-
+    HealthCheckResponse,
 )
 
 __all__ = [
@@ -18,5 +17,5 @@ __all__ = [
     "ResumeResponse", 
     "AnalysisResponse",
     "ErrorResponse",
-    "HealthCheckResponse"
+    "HealthCheckResponse",
 ]

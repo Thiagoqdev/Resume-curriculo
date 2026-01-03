@@ -3,6 +3,7 @@ DTOs para requisições da API
 Data Transfer Objects para entrada de dados
 """
 from datetime import datetime
+from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, validator
@@ -94,6 +95,9 @@ class ResumeCreateRequest(BaseModel):
 class ResumeUpdateRequest(BaseModel):
     """DTO para atualização de currículo"""
     title: Optional[str] = Field(None, min_length=1, max_length=255)
+    original_filename: Optional[str] = None
+    file_size: Optional[int] = None
+    file_type: Optional[str] = None
     version: Optional[str] = Field(None, max_length=20)
     status: Optional[ResumeStatus] = None
 

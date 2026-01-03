@@ -125,7 +125,6 @@ class JobDescription:
     is_active: bool = True
     view_count: int = 0
     application_count: int = 0
-    created_by_user_id: Optional[int] = None
 
 
 @dataclass

@@ -5,7 +5,7 @@ CORREÇÃO FINAL: Injeta o UserMapper no SQLUserRepository.
 """
 from typing import Dict, Any, Optional, Generator, AsyncGenerator
 from uuid import UUID
-from fastapi import Depends, HTTPException, status, Security
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,11 +24,9 @@ from data.mongo_repository import (
     UserPreferencesMongoRepository, 
     ActivityLogMongoRepository
 )
-from data.sql_repository import JobRepository
-from services.job_description_service import JobDescriptionService
 
 logger = logging.getLogger(__name__)
-security = HTTPBearer(auto_error=False)
+security = HTTPBearer()
 
 # --- PARTE 1: Novo "Encanamento" da Aplicação (Passos 4 e 5) ---
 
@@ -81,32 +79,23 @@ def get_user_service(
 # --- PARTE 2: Dependências de Autenticação Antigas (Refatoradas) ---
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Security(security),
-    user_service: UserService = Depends(get_user_service)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    user_service: UserService = Depends(get_user_service) 
 ) -> Dict[str, Any]:
-    """Obter usuário atual a partir do token JWT.
-
-    Se não houver credenciais, retornamos 401 (Unauthorized) em vez de 403.
-    """
-    if not credentials or not getattr(credentials, 'credentials', None):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication credentials were not provided",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-
+    """Obter usuário atual a partir do token JWT"""
     try:
         token_data = await user_service.verify_token(credentials.credentials)
+        
         if not token_data:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials",
                 headers={"WWW-Authenticate": "Bearer"}
             )
-
-        token_data["user_id"] = UUID(token_data["user_id"]) if token_data.get("user_id") else None
+        
+        token_data["user_id"] = UUID(token_data["user_id"])
         return token_data
-
+        
     except HTTPException:
         raise
     except Exception as e:
@@ -119,20 +108,15 @@ async def get_current_user(
 
 
 async def get_optional_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    user_service: UserService = Depends(get_user_service)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> Optional[Dict[str, Any]]:
     """Obter usuário atual (opcional) - para endpoints públicos"""
-    if not credentials or not credentials.credentials:
+    if not credentials:
         return None
-
+    
     try:
-        token_data = await user_service.verify_token(credentials.credentials)
-        if not token_data:
-            return None
-        token_data["user_id"] = UUID(token_data["user_id"]) if token_data.get("user_id") else None
-        return token_data
-    except Exception:
+        return await get_current_user(credentials)
+    except HTTPException:
         return None
 
 
@@ -166,15 +150,3 @@ def require_admin():
         )
     
     return admin_dependency
-
-
-def get_job_repository() -> JobRepository:
-    """Cria e injeta o repositório de JobDescription."""
-    return JobRepository()
-
-
-def get_job_service(
-    job_repo: JobRepository = Depends(get_job_repository)
-) -> JobDescriptionService:
-    """Cria e injeta o serviço de JobDescription."""
-    return JobDescriptionService(repo=job_repo)

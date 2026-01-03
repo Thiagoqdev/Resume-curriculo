@@ -162,6 +162,7 @@ class JobDescriptionResponse(BaseModel):
     view_count: int
     application_count: int
 
+
 # ===== ANALYSIS DTOs =====
 
 class SkillMatchResponse(BaseModel):

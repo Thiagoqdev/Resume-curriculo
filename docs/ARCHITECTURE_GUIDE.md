@@ -128,7 +128,8 @@ python
 Vantagens:
 API não conhece banco de dados
 Service não conhece detalhes de persistência
-Cada parte pode ser testada isoladamente
+Cada parte pode ser testada isoladamente.\.venv\Scripts\Activate.ps1
+
 Mudanças ficam contidas
 5. Nossa Arquitetura IT Valley
 Agora vou te mostrar nossa arquitetura completa, meu querido. É como um prédio bem organizado:
