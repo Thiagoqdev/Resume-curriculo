@@ -12,7 +12,7 @@ import logging
 
 from core.config import settings
 from domain.entities.domain import (
-    User, Resume, Company, JobDescription, CompatibilityAnalysis,
+    User, Resume,ResumeStatus, Company, JobDescription, CompatibilityAnalysis,
     CoverLetter, Skill, UserSkill, Notification, UserSession, DataLakeFile
 )
 
@@ -60,8 +60,8 @@ class SQLRepository:
 
 class UserRepository(SQLRepository):
     """Repositório de usuários"""
-    
-    async def create_user(self, user: User) -> User:
+        
+    async def add(self, resume: Resume) -> Resume:
         """Criar novo usuário"""
         query = """
         EXEC sp_CreateUser 
@@ -194,25 +194,34 @@ class UserRepository(SQLRepository):
 class ResumeRepository(SQLRepository):
     """Repositório de currículos"""
     
-    async def create_resume(self, resume: Resume) -> Resume:
-        """Criar novo currículo"""
+
+    """Criar novo currículo"""
+    async def add(self, resume: Resume) -> Resume:
         query = """
-        INSERT INTO Resumes (ResumeId, UserId, Title, Version, Status, 
-                           DataLakeFileId, OriginalFileName, FileSize, FileType)
-        VALUES (NEWSEQUENTIALID(), :user_id, :title, :version, :status,
-                :data_lake_file_id, :original_filename, :file_size, :file_type)
+        INSERT INTO Resumes (ResumeId, ResumeGroupId, UserId, Title, VersionNumber, Version, IsCurrent,
+                           Status, DataLakeFileId, OriginalFileName, FileSize, FileType, CreatedAt, UpdatedAt)
+        VALUES (:resume_id, :resume_group_id, :user_id, :title, :version_number, :version, :is_current,
+                :status, :data_lake_file_id, :original_filename, :file_size, :file_type, :created_at, :updated_at)
         """
-        
+
+        status_value = resume.status.value if hasattr(resume.status, "value") else resume.status
         params = {
+            "resume_id": str(resume.resume_id),
+            "resume_group_id": str(resume.resume_group_id),     
             "user_id": str(resume.user_id),
             "title": resume.title,
+            "version_number": resume.version_number,
             "version": resume.version,
-            "status": resume.status.value,
+            "is_current": resume.is_current,
+            "status": status_value,
             "data_lake_file_id": str(resume.data_lake_file_id) if resume.data_lake_file_id else None,
             "original_filename": resume.original_filename,
             "file_size": resume.file_size,
-            "file_type": resume.file_type
+            "file_type": resume.file_type,
+            "created_at": resume.created_at,
+            "updated_at": resume.updated_at,
         }
+        
         
         try:
             with self.get_session() as session:
@@ -223,11 +232,16 @@ class ResumeRepository(SQLRepository):
             logger.error(f"Error creating resume: {e}")
             raise
     
-    async def get_user_resumes(self, user_id: UUID, status: Optional[str] = None) -> List[Resume]:
+    
+    async def create_resume(self, resume: Resume) -> Resume:
+        """Compatibilidade: criar novo currículo"""
+        return await self.add(resume)
+
+    async def list_by_user(self, user_id: UUID, status: Optional[str] = None) -> List[Resume]:
         """Buscar currículos do usuário"""
         query = """
-        SELECT ResumeId, UserId, Title, Version, Status, DataLakeFileId,
-               OriginalFileName, FileSize, FileType, CreatedAt, UpdatedAt,
+                SELECT ResumeId, ResumeGroupId, UserId, Title, VersionNumber, Version, IsCurrent, Status,
+               DataLakeFileId, OriginalFileName, FileSize, FileType, CreatedAt, UpdatedAt,
                LastAnalyzedAt, AnalysisCount, AverageMatchScore
         FROM Resumes 
         WHERE UserId = :user_id
@@ -247,10 +261,13 @@ class ResumeRepository(SQLRepository):
         for row in result:
             resumes.append(Resume(
                 resume_id=UUID(row["ResumeId"]),
+                resume_group_id=UUID(row["ResumeGroupId"]),
                 user_id=UUID(row["UserId"]),
                 title=row["Title"],
+                 version_number=row["VersionNumber"],
                 version=row["Version"],
-                status=row["Status"],
+                is_current=row["IsCurrent"],
+                status=ResumeStatus(row["Status"]),
                 data_lake_file_id=UUID(row["DataLakeFileId"]) if row["DataLakeFileId"] else None,
                 original_filename=row["OriginalFileName"],
                 file_size=row["FileSize"],
@@ -264,11 +281,18 @@ class ResumeRepository(SQLRepository):
         
         return resumes
     
-    async def get_resume_by_id(self, resume_id: UUID) -> Optional[Resume]:
+    
+    async def get_user_resumes(self, user_id: UUID, status: Optional[str] = None) -> List[Resume]:
+        """Compatibilidade: buscar currículos do usuário"""
+        return await self.list_by_user(user_id, status)
+
+    async def get_by_id(self, resume_id: UUID) -> Optional[Resume]:
+        
         """Buscar currículo por ID"""
+        
         query = """
-        SELECT ResumeId, UserId, Title, Version, Status, DataLakeFileId,
-               OriginalFileName, FileSize, FileType, CreatedAt, UpdatedAt,
+        SELECT ResumeId, ResumeGroupId, UserId, Title, VersionNumber, Version, IsCurrent, Status,
+               DataLakeFileId, OriginalFileName, FileSize, FileType, CreatedAt, UpdatedAt,
                LastAnalyzedAt, AnalysisCount, AverageMatchScore
         FROM Resumes 
         WHERE ResumeId = :resume_id
@@ -282,9 +306,13 @@ class ResumeRepository(SQLRepository):
         return Resume(
             resume_id=UUID(row["ResumeId"]),
             user_id=UUID(row["UserId"]),
+            resume_group_id=UUID(row["ResumeGroupId"]),
             title=row["Title"],
+            version_number=row["VersionNumber"],
             version=row["Version"],
             status=row["Status"],
+            is_current=row["IsCurrent"],
+            status=ResumeStatus(row["Status"]),
             data_lake_file_id=UUID(row["DataLakeFileId"]) if row["DataLakeFileId"] else None,
             original_filename=row["OriginalFileName"],
             file_size=row["FileSize"],
@@ -295,6 +323,69 @@ class ResumeRepository(SQLRepository):
             analysis_count=row["AnalysisCount"],
             average_match_score=row["AverageMatchScore"]
         )
+        
+    async def get_resume_by_id(self, resume_id: UUID) -> Optional[Resume]:
+        """Compatibilidade: buscar currículo por ID"""
+        return await self.get_by_id(resume_id)
+
+    async def update(self, resume: Resume) -> Resume:
+        """Atualizar currículo"""
+        query = """
+        UPDATE Resumes
+        SET Title = :title,
+            VersionNumber = :version_number,
+            Version = :version,
+            IsCurrent = :is_current,
+            Status = :status,
+            DataLakeFileId = :data_lake_file_id,
+            OriginalFileName = :original_filename,
+            FileSize = :file_size,
+            FileType = :file_type,
+            UpdatedAt = :updated_at
+        WHERE ResumeId = :resume_id
+        """
+
+        status_value = resume.status.value if hasattr(resume.status, "value") else resume.status
+        params = {
+            "resume_id": str(resume.resume_id),
+            "title": resume.title,
+            "version_number": resume.version_number,
+            "version": resume.version,
+            "is_current": resume.is_current,
+            "status": status_value,
+            "data_lake_file_id": str(resume.data_lake_file_id) if resume.data_lake_file_id else None,
+            "original_filename": resume.original_filename,
+            "file_size": resume.file_size,
+            "file_type": resume.file_type,
+            "updated_at": resume.updated_at,
+        }
+
+        try:
+            with self.get_session() as session:
+                session.execute(text(query), params)
+                session.commit()
+                return resume
+        except SQLAlchemyError as e:
+            logger.error(f"Error updating resume: {e}")
+            raise
+
+    async def delete(self, resume_id: UUID) -> bool:
+        """Excluir currículo"""
+        query = """
+        DELETE FROM Resumes
+        WHERE ResumeId = :resume_id
+        """
+
+        try:
+            with self.get_session() as session:
+                result = session.execute(text(query), {"resume_id": str(resume_id)})
+                session.commit()
+                return result.rowcount > 0
+        except SQLAlchemyError as e:
+            logger.error(f"Error deleting resume: {e}")
+            raise        
+        
+        
     
     async def update_resume_analysis_stats(self, resume_id: UUID, match_score: float) -> bool:
         """Atualizar estatísticas de análise do currículo"""

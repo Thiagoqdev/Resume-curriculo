@@ -25,6 +25,9 @@ from data.mongo_repository import (
     ActivityLogMongoRepository
 )
 
+from data.sql_repository import ResumeRepository
+from services.resume_service import ResumeService
+
 logger = logging.getLogger(__name__)
 security = HTTPBearer()
 
@@ -74,6 +77,19 @@ def get_user_service(
         prefs_repo=prefs_repo,
         activity_repo=activity_repo
     )
+
+
+def get_resume_repository() -> ResumeRepository:
+    """Cria e injeta o Repositório de Currículos (SQL)."""
+    return ResumeRepository()
+
+
+def get_resume_service(
+    resume_repo: ResumeRepository = Depends(get_resume_repository),
+) -> ResumeService:
+    """Cria e injeta o Serviço de Currículos."""
+    return ResumeService(resume_repository=resume_repo)
+
 
 
 # --- PARTE 2: Dependências de Autenticação Antigas (Refatoradas) ---

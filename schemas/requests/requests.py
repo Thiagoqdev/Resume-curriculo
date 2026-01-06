@@ -90,6 +90,9 @@ class ResumeCreateRequest(BaseModel):
     """DTO para criação de currículo"""
     title: str = Field(..., min_length=1, max_length=255)
     version: str = Field(default="v1.0", max_length=20)
+    original_filename: Optional[str] = None
+    file_size: Optional[int] = None
+    file_type: Optional[str] = None    
 
 
 class ResumeUpdateRequest(BaseModel):

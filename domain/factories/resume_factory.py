@@ -43,6 +43,7 @@ class ResumeFactory:
         # Criar currículo
         return Resume(
             resume_id=uuid4(),
+            resume_group_id=uuid4(),
             user_id=user_id,
             title=title.strip(),
             version=version,

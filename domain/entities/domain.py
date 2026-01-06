@@ -78,9 +78,12 @@ class User:
 class Resume:
     """Entidade Currículo"""
     resume_id: UUID
+    resume_group_id: UUID
     user_id: UUID
     title: str
+    version_number: int = 1
     version: str = "v1.0"
+    is_current: bool = True
     status: ResumeStatus = ResumeStatus.DRAFT
     data_lake_file_id: Optional[UUID] = None
     original_filename: Optional[str] = None

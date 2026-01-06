@@ -3,7 +3,7 @@ Respostas específicas para currículos
 Seguindo padrão IT Valley
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from pydantic import BaseModel
 
@@ -27,10 +27,29 @@ class ResumeResponse(BaseModel):
     average_match_score: float
     download_url: Optional[str] = None
 
+class ResumePublicResponse(BaseModel):
+    """Resposta pública de currículo"""
+    resume_id: UUID
+    resume_group_id: UUID
+    user_id: UUID
+    title: str
+    version_number: int
+    version: str
+    is_current: bool
+    status: ResumeStatus
+    original_filename: Optional[str] = None
+    file_size: Optional[int] = None
+    file_type: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    last_analyzed_at: Optional[datetime] = None
+    analysis_count: int
+    average_match_score: float
+
 
 class ResumeListResponse(BaseModel):
     """Resposta de lista de currículos"""
-    resumes: list
+    resumes: List[ResumePublicResponse]
     total_count: int
     active_count: int
     draft_count: int

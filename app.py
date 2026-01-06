@@ -13,6 +13,7 @@ from datetime import datetime
 
 from core.config import settings
 from api import auth
+from api import resumes
 from schemas.responses import ErrorResponse, HealthCheckResponse
 
 # Configurar logging
@@ -156,7 +157,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 # Incluir routers
 app.include_router(auth.router, prefix=settings.API_V1_STR)
-
+app.include_router(resumes.router, prefix=settings.API_V1_STR)
 
 # Endpoints básicos
 @app.get("/")

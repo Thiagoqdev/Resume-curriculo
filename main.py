@@ -13,6 +13,7 @@ from fastapi.encoders import jsonable_encoder
 
 # Importa o router que refatorámos
 from api import auth as auth_router
+from api import resumes as resumes_router
 
 from core.config import settings
 # REMOVIDO: from data.database import initialize_database_data 
@@ -155,8 +156,10 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 # Incluir routers (Apenas a versão com prefixo)
 app.include_router(auth_router.router, prefix=settings.API_V1_STR)
+
 # (Aqui você adicionará os outros routers: resumes, analysis, etc.)
 
+app.include_router(resumes_router.router, prefix=settings.API_V1_STR)
 
 # Endpoints básicos
 @app.get("/")
