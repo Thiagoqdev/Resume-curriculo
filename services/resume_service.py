@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 from data.sql_repository import ResumeRepository
 from domain.entities.domain import Resume, ResumeStatus
+from datetime import datetime
 from schemas.requests.requests import ResumeCreateRequest, ResumeUpdateRequest
 from schemas.responses.resume_responses import ResumeListResponse, ResumePublicResponse
 

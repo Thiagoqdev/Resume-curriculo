@@ -310,7 +310,6 @@ class ResumeRepository(SQLRepository):
             title=row["Title"],
             version_number=row["VersionNumber"],
             version=row["Version"],
-            status=row["Status"],
             is_current=row["IsCurrent"],
             status=ResumeStatus(row["Status"]),
             data_lake_file_id=UUID(row["DataLakeFileId"]) if row["DataLakeFileId"] else None,
